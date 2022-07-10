@@ -4,7 +4,7 @@
  */
 
 import * as MRE from '@microsoft/mixed-reality-extension-sdk';
-import { Vector3 } from '@microsoft/mixed-reality-extension-sdk';
+import { CollisionLayer, RigidBody, Vector3 } from '@microsoft/mixed-reality-extension-sdk';
 import CubeBottonOnHoverEnterHandler from './Handlers/CubeBottonOnHoverEnterHandler';
 import CubeBottonOnHoverExitHandler from './Handlers/CubeBottonOnHoverExitHandler';
 import { generateSpinKeyframes } from './Animation/Animation';
@@ -34,41 +34,70 @@ export default class HelloWorld {
 			actor: {
 				name: 'Altspace Dna',
 				transform: {
-					app: {
-						position: {
-							x: 0,
-							y: 0,
-							z: 0
-						},
-					},
+					app: { position: {x: 0, y: 0, z: 0} },
 					local: { scale: { x: 2, y: 2, z: 2 } }
 				},
 				grabbable: true,
-
+				rigidBody: {
+					useGravity: true,
+					collisionDetectionMode: MRE.CollisionDetectionMode.Continuous,
+					detectCollisions: true,
+				},
+				collider: {
+					isTrigger: true,
+					geometry: {
+						shape: MRE.ColliderType.Sphere,
+						radius: 0.5 
+					},
+					bounciness: 2,
+				},
+				subscriptions: ['transform', 'rigidbody'],
 			},
 		});
 		dna.subscribe('transform')
 		dna.onGrab('end', (user, data) => {
-			// console.log(dna.transform.app.toJSON())
-			console.log('end ', dna.transform.local.toJSON())
+			console.log('end ', dna.transform.app.toJSON())
 		})
 
-		const ball = MRE.Actor.CreatePrimitive(this.assets, {
-			definition: {
-				dimensions: new Vector3(1,1,1),
-				shape: MRE.PrimitiveShape.Sphere,
-			},
+		const circle = this.assets.createCylinderMesh('circle', 0.1, 0.4, 'y', 8);
+		const square = this.assets.createBoxMesh('square', 0.70, 0.2, 0.70);
+		const blackMaterial = this.assets.createMaterial("blackmat", {
+			color: MRE.Color3.Black()
+		});
+		const coster = MRE.Actor.Create(this.context, {
 			actor: {
-				name: 'box',
-				grabbable: true
+				name: 'coster',
+				appearance: { meshId: circle.id, enabled: true, materialId: blackMaterial.id },
+				grabbable: false,
+				rigidBody: {
+					useGravity: false,
+					collisionDetectionMode: MRE.CollisionDetectionMode.Continuous,
+					detectCollisions: true,
+					enabled: true
+				},
+				subscriptions: ['transform', 'rigidbody'],
+				transform: { app: { rotation: { x: 0, y: 0.5, z: 0 } } }
 			},
-			addCollider: true
 		})
-		ball.subscribe('transform')
 
-		ball.onGrab('end', () => {
-			console.log(ball.transform.local.position.toJSON())
-		})
+		coster.setCollider(MRE.ColliderType.Sphere, true)
+
+		// const ball = MRE.Actor.CreatePrimitive(this.assets, {
+		// 	definition: {
+		// 		dimensions: {x: 2, y: 2, z: 2},
+		// 		shape: MRE.PrimitiveShape.Sphere,
+		// 	},
+		// 	actor: {
+		// 		name: 'box',
+		// 		grabbable: true,
+		// 	},
+		// 	addCollider: true,
+		// })
+
+		// ball.subscribe('transform')
+		// ball.onGrab('end', () => {
+		// 	console.log(ball.transform.local.position.toJSON())
+		// })
 
 	}
 
@@ -148,14 +177,16 @@ export default class HelloWorld {
 		const flipAnimData = this.assets.createAnimationData(
 			// the animation name
 			"DoAFlip",
-			{ tracks: [{
-				// applies to the rotation of an unknown actor we'll refer to as "target"
-				target: MRE.ActorPath("target").transform.local.rotation,
-				// do a spin around the X axis over the course of one second
-				keyframes: generateSpinKeyframes(1.0, MRE.Vector3.Right()),
-				// and do it smoothly
-				easing: MRE.AnimationEaseCurves.Linear
-			}]}
+			{
+				tracks: [{
+					// applies to the rotation of an unknown actor we'll refer to as "target"
+					target: MRE.ActorPath("target").transform.local.rotation,
+					// do a spin around the X axis over the course of one second
+					keyframes: generateSpinKeyframes(1.0, MRE.Vector3.Right()),
+					// and do it smoothly
+					easing: MRE.AnimationEaseCurves.Linear
+				}]
+			}
 		);
 		// apply the animation to our cube
 		const flipAnim = await flipAnimData.bind({ target: this.cube });
@@ -168,56 +199,8 @@ export default class HelloWorld {
 		buttonBehavior.onHover('enter', CubeBottonOnHoverEnterHandler);
 		buttonBehavior.onHover('exit', CubeBottonOnHoverExitHandler);
 
-		const gltf = await this.assets.loadGltf('dna.glb', 'box');
-
 		// When clicked, do a 360 sideways.
 		buttonBehavior.onClick(_ => {
-			if(this.ball){
-				this.ball.destroy()
-				this.dna.destroy()
-				this.ball = null
-				this.dna = null
-			} else {
-				const gamePiecePosition = new MRE.Vector3(
-					this.cube.transform.local.position.x,
-					this.cube.transform.local.position.y + 5,
-					this.cube.transform.local.position.z);
-				this.ball = MRE.Actor.CreatePrimitive(this.assets, {
-					definition: {
-						dimensions: new Vector3(5,5,5),
-						shape: MRE.PrimitiveShape.Box,
-					},
-					actor: {
-						parentId: this.cube.id,
-						name: 'box',
-						transform: {
-							local: { position: gamePiecePosition}
-						},
-						grabbable: true
-					},
-					addCollider: true
-				})
-
-				this.dna = MRE.Actor.CreateFromPrefab(this.context, {
-					// Use the preloaded glTF for each box
-					firstPrefabFrom: gltf,
-					// Also apply the following generic actor properties.
-					actor: {
-						name: 'Altspace Dna',
-						parentId: this.cube.id,
-						transform: {
-							app: {
-								position: {
-									x: this.cube.transform.local.position.x + 2,
-									y: this.cube.transform.local.position.y - 2,
-									z: this.cube.transform.local.position.z
-								},
-							},
-							local: { scale: { x: 10, y: 10, z: 10 } }
-						}
-					}
-				});
-			}
 			flipAnim.play();
 		});
 	}
