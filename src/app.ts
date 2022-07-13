@@ -25,29 +25,6 @@ export default class HelloWorld {
 
 	private async startTest() {
 		this.assets = new MRE.AssetContainer(this.context);
-		const dna3dModel = await this.assets.loadGltf('dna.glb', 'box');
-		const dna = MRE.Actor.CreateFromPrefab(this.context, {
-			// Use the preloaded glTF for each box
-			firstPrefabFrom: dna3dModel,
-			// Also apply the following generic actor properties.
-			actor: {
-				name: 'Altspace Dna',
-				transform: {
-					app: { position: {x: 0, y: 0, z: 0} },
-					local: { scale: { x: 2, y: 2, z: 2 } }
-				},
-				grabbable: true,
-				rigidBody: {
-					useGravity: true,
-					collisionDetectionMode: MRE.CollisionDetectionMode.Continuous,
-					detectCollisions: true,
-				},
-				subscriptions: ['transform', 'rigidbody'],
-			},
-		});
-		dna.onGrab('end', (user, data) => {
-			console.log('end ', dna.transform.app.toJSON())
-		})
 
 		const coster3dModel = await this.assets.loadGltf('coster.glb', 'box');
 		const coster = MRE.Actor.CreateFromPrefab(this.context, {
@@ -57,8 +34,10 @@ export default class HelloWorld {
 			actor: {
 				name: 'Altspace Coster',
 				transform: {
-					app: { position: { x: 0, y: 0, z: 0 } },
-					local: { scale: { x: 2, y: 2, z: 2 } }
+					local: {
+						position: { x: 0, y: 0, z: 0 },
+						scale: { x: 2, y: 2, z: 2 }
+					}
 				},
 				grabbable: false,
 				rigidBody: {
@@ -70,7 +49,33 @@ export default class HelloWorld {
 			},
 		});
 		coster.onGrab('end', (user, data) => {
-			console.log('end ', dna.transform.app.toJSON())
+			console.log('end ', coster.transform.app.toJSON())
+		})
+
+		const dna3dModel = await this.assets.loadGltf('dna.glb', 'box');
+		const dna = MRE.Actor.CreateFromPrefab(this.context, {
+			// Use the preloaded glTF for each box
+			firstPrefabFrom: dna3dModel,
+			// Also apply the following generic actor properties.
+			actor: {
+				name: 'Altspace Dna',
+				parentId: coster.id,
+				transform: {
+					local: {
+						position: { x: 0, y: 0, z: 0 }
+					}
+				},
+				grabbable: true,
+				rigidBody: {
+					useGravity: true,
+					collisionDetectionMode: MRE.CollisionDetectionMode.Continuous,
+					detectCollisions: true,
+				},
+				subscriptions: ['transform', 'rigidbody'],
+			},
+		});
+		dna.onGrab('end', (user, data) => {
+			console.log('end ', dna.transform.local.toJSON())
 		})
 
 		/*const circle = this.assets.createCylinderMesh('circle', 0.1, 0.4, 'y', 8);
