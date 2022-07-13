@@ -4,7 +4,6 @@
  */
 
 import * as MRE from '@microsoft/mixed-reality-extension-sdk';
-import { CollisionLayer, RigidBody, Vector3 } from '@microsoft/mixed-reality-extension-sdk';
 import CubeBottonOnHoverEnterHandler from './Handlers/CubeBottonOnHoverEnterHandler';
 import CubeBottonOnHoverExitHandler from './Handlers/CubeBottonOnHoverExitHandler';
 import { generateSpinKeyframes } from './Animation/Animation';
@@ -26,10 +25,10 @@ export default class HelloWorld {
 
 	private async startTest() {
 		this.assets = new MRE.AssetContainer(this.context);
-		const g = await this.assets.loadGltf('dna.glb', 'box');
+		const dna3dModel = await this.assets.loadGltf('dna.glb', 'box');
 		const dna = MRE.Actor.CreateFromPrefab(this.context, {
 			// Use the preloaded glTF for each box
-			firstPrefabFrom: g,
+			firstPrefabFrom: dna3dModel,
 			// Also apply the following generic actor properties.
 			actor: {
 				name: 'Altspace Dna',
@@ -43,23 +42,38 @@ export default class HelloWorld {
 					collisionDetectionMode: MRE.CollisionDetectionMode.Continuous,
 					detectCollisions: true,
 				},
-				collider: {
-					isTrigger: true,
-					geometry: {
-						shape: MRE.ColliderType.Sphere,
-						radius: 0.5 
-					},
-					bounciness: 2,
-				},
 				subscriptions: ['transform', 'rigidbody'],
 			},
 		});
-		dna.subscribe('transform')
 		dna.onGrab('end', (user, data) => {
 			console.log('end ', dna.transform.app.toJSON())
 		})
 
-		const circle = this.assets.createCylinderMesh('circle', 0.1, 0.4, 'y', 8);
+		const coster3dModel = await this.assets.loadGltf('coster.glb', 'box');
+		const coster = MRE.Actor.CreateFromPrefab(this.context, {
+			// Use the preloaded glTF for each box
+			firstPrefabFrom: coster3dModel,
+			// Also apply the following generic actor properties.
+			actor: {
+				name: 'Altspace Coster',
+				transform: {
+					app: { position: { x: 0, y: 0, z: 0 } },
+					local: { scale: { x: 2, y: 2, z: 2 } }
+				},
+				grabbable: false,
+				rigidBody: {
+					useGravity: true,
+					collisionDetectionMode: MRE.CollisionDetectionMode.Continuous,
+					detectCollisions: true,
+				},
+				subscriptions: ['transform', 'rigidbody'],
+			},
+		});
+		coster.onGrab('end', (user, data) => {
+			console.log('end ', dna.transform.app.toJSON())
+		})
+
+		/*const circle = this.assets.createCylinderMesh('circle', 0.1, 0.4, 'y', 8);
 		const square = this.assets.createBoxMesh('square', 0.70, 0.2, 0.70);
 		const blackMaterial = this.assets.createMaterial("blackmat", {
 			color: MRE.Color3.Black()
@@ -69,18 +83,26 @@ export default class HelloWorld {
 				name: 'coster',
 				appearance: { meshId: circle.id, enabled: true, materialId: blackMaterial.id },
 				grabbable: false,
+				collider: {
+					isTrigger: true,
+					geometry: {
+						shape: MRE.ColliderType.Sphere,
+						radius: 0.5
+					},
+					bounciness: 2,
+					enabled: true
+				},
 				rigidBody: {
-					useGravity: false,
+					useGravity: true,
 					collisionDetectionMode: MRE.CollisionDetectionMode.Continuous,
 					detectCollisions: true,
-					enabled: true
+					enabled: true,
+					mass: 1
 				},
 				subscriptions: ['transform', 'rigidbody'],
 				transform: { app: { rotation: { x: 0, y: 0.5, z: 0 } } }
 			},
-		})
-
-		coster.setCollider(MRE.ColliderType.Sphere, true)
+		})*/
 
 		// const ball = MRE.Actor.CreatePrimitive(this.assets, {
 		// 	definition: {
